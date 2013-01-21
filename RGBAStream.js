@@ -1,6 +1,9 @@
-// This module is in many ways a rip-off from https://github.com/TooTallNate/node-drone-video
+// This module is inspired and a lot is copied from from https://github.com/TooTallNate/node-drone-video
 // It does require a recent build of FFMPEG, I followed:
 // https://ffmpeg.org/trac/ffmpeg/wiki/UbuntuCompilationGuide
+// On mac some instructions are given on TooTallNates side
+
+// And error handling ... well...
 
 var spawn = require('child_process').spawn;
 var Stream = require('stream');
@@ -20,22 +23,28 @@ var RGBAStream = function RGBAStream() {
 
    var rgbaStream = new Stream();
    rgbaStream.writable = true;
+   rgbaStream.readable = true;
    rgbaStream.pipe = function (stream) {
         stream.pipe(videoEncoder);                
    }
 
    videoEncoder.stdout.on('data', function (buffer) {
+       // Just append the videodata to exising buffer
        _buf = Buffer.concat([_buf, buffer]);
-         if (_buf.length > nrOfBytesPrImage) {
-            for (var i = 0; i < nrOfPixels-3; i+=4) {
+       // When there is enough data for one frame, go get it out
+       // Should perhaps be while in case enough data is in
+       if (_buf.length > nrOfBytesPrImage) {
+           for (var i = 0; i < nrOfPixels-3; i+=4) {
                 rgba[i] = _buf.readUInt8(i); 
                 rgba[i+1] = _buf.readUInt8(i+1); 
                 rgba[i+2] = _buf.readUInt8(i+2); 
                 rgba[i+3] = 0; // Alpha channel should be 0, no need to parse, even noe need to set it except init
             }
-         rgbaStream.emit('data', this.rgba); 
-         _buf = _buf.slice(nrOfBytesPrImage);
-        };
+          // Emit the parsed data
+          rgbaStream.emit('data', rgba); 
+          // Remove the parsed data from the buffer
+          _buf = _buf.slice(nrOfBytesPrImage);
+       };
    });
    return rgbaStream;
 }
