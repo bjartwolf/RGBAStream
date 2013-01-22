@@ -58,10 +58,6 @@ RGBAStream.prototype.write = function (buffer) {
     this.videoEncoder.stdin.write(buffer.payload);
 }
 
-//RGBAStream.prototype.pipe = function (stream) {
-//    stream.pipe(this.videoEncoder);                
-//}
-
 RGBAStream.prototype._initVideoEncoder = function () {
     console.log('init videoencoder'); 
     return spawn('ffmpeg', [
