@@ -23,7 +23,6 @@ var nrOfPixels = w*h;
 
 function RGBAStream() {
    var self = this;
-   console.log('RGBA Stream constuctor called');
    Stream.call(this);
    this.writable = true;
    this.readable = true;
@@ -34,7 +33,6 @@ function RGBAStream() {
    var nrOfBytesPrImage = nrOfPixels*4; 
 
    this.videoEncoder.stdout.on('data', function (buffer) {
-       console.log('Videoencoder outputting data');
        // Just append the videodata to exising buffer
        self._buf = Buffer.concat([self._buf, buffer]);
        // When there is enough data for one frame, go get it out
@@ -48,7 +46,6 @@ function RGBAStream() {
             }
           // Emit the parsed data
           self.emit('data', self.rgba); 
-          console.log(self.rgba);
           // Remove the parsed data from the buffer
           self._buf = self._buf.slice(nrOfBytesPrImage);
        };
@@ -59,7 +56,6 @@ RGBAStream.prototype.write = function (buffer) {
 }
 
 RGBAStream.prototype._initVideoEncoder = function () {
-    console.log('init videoencoder'); 
     return spawn('ffmpeg', [
     '-i', 'pipe:0',
     '-f', 'rawvideo',
