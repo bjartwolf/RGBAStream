@@ -4,49 +4,55 @@
 // On mac some instructions are given on TooTallNates side
 
 // And error handling ... well...
+// Tried to code according to how the PaVE stream in ardrone was written for consistency
 
+var util   = require('util');
 var spawn = require('child_process').spawn;
-var Stream = require('stream');
+var Stream = require('stream').Stream;
 
+module.exports = RGBAStream;
+util.inherits(RGBAStream, Stream);
 // Data skal pipes inn i RGBA stream
 
+// This should probably be init options to constructor, refactor later
+// Something like options = {height:...
 var h = 180;
 var w = 320;
 // Should make a string of res and put in spawn ffmpeg
 var nrOfPixels = w*h;
 
-var RGBAStream = function RGBAStream() {
-   var videoEncoder = this._initVideoEncoder(); 
-   var rgba = [];
-   var _buf = new Buffer(0);
-   var nrOfBytesPrImage = nrOfPixels*4; 
+function RGBAStream() {
+   var self = this;
+   Stream.call(this);
+   this.writable = true;
+   this.readable = true;
 
-   var rgbaStream = new Stream();
-   rgbaStream.writable = true;
-   rgbaStream.readable = true;
-   rgbaStream.pipe = function (stream) {
-        stream.pipe(videoEncoder);                
-   }
+   this.videoEncoder = this._initVideoEncoder(); 
+   this.rgba = [];
+   this._buf = new Buffer(0);
+   this.nrOfBytesPrImage = nrOfPixels*4; 
 
-   videoEncoder.stdout.on('data', function (buffer) {
+   this.videoEncoder.stdout.on('data', function (buffer) {
        // Just append the videodata to exising buffer
-       _buf = Buffer.concat([_buf, buffer]);
+       self._buf = Buffer.concat([self._buf, self.buffer]);
        // When there is enough data for one frame, go get it out
        // Should perhaps be while in case enough data is in
-       if (_buf.length > nrOfBytesPrImage) {
+       if (self._buf.length > nrOfBytesPrImage) {
            for (var i = 0; i < nrOfPixels-3; i+=4) {
-                rgba[i] = _buf.readUInt8(i); 
-                rgba[i+1] = _buf.readUInt8(i+1); 
-                rgba[i+2] = _buf.readUInt8(i+2); 
-                rgba[i+3] = 0; // Alpha channel should be 0, no need to parse, even noe need to set it except init
+                self.rgba[i] = self._buf.readUInt8(i); 
+                self.rgba[i+1] = self._buf.readUInt8(i+1); 
+                self.rgba[i+2] = self._buf.readUInt8(i+2); 
+                self.rgba[i+3] = 0; // Alpha channel should be 0, no need to parse, even noe need to set it except init
             }
           // Emit the parsed data
-          rgbaStream.emit('data', rgba); 
+          self.rgbaStream.emit('data', self.rgba); 
           // Remove the parsed data from the buffer
-          _buf = _buf.slice(nrOfBytesPrImage);
+          self._buf = self._buf.slice(nrOfBytesPrImage);
        };
    });
-   return rgbaStream;
+}
+RGBAStream.prototype.pipe = function (stream) {
+    stream.pipe(this.videoEncoder);                
 }
 
 RGBAStream.prototype._initVideoEncoder = function () {
@@ -61,4 +67,3 @@ RGBAStream.prototype._initVideoEncoder = function () {
   ]);
 };
 
-module.exports = RGBAStream;
